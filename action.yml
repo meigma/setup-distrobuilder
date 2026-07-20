@@ -1,28 +1,55 @@
-# Sample action metadata. Replace name/description/author/branding, inputs, and
-# outputs with your action's real interface after creating a repo from this
-# template.
-#
-# If your action pairs with a released CLI, pin its version here with a
-# `# x-release-please-version` marker on the input default and add
-#   "extra-files": [{ "type": "generic", "path": "action.yml" }]
-# to release-please-config.json so releases keep it in sync.
-name: The name of your action here
-description: Provide a description here
+name: Setup Distrobuilder
+description:
+  Install distrobuilder on a GitHub-hosted Linux runner, with binary caching and
+  optional build dependencies.
 author: Meigma
 
 branding:
-  icon: heart
-  color: red
+  icon: package
+  color: blue
 
 inputs:
-  milliseconds:
-    description: Your input description here
-    required: true
-    default: '1000'
+  version:
+    description:
+      'distrobuilder release to install: `latest`, or an explicit version such
+      as `3.3.1` (a leading `v` is accepted).'
+    required: false
+    default: latest
+  install-dependencies:
+    description:
+      'Install the apt packages distrobuilder needs to build container / rootfs
+      images (`debootstrap`, `squashfs-tools`).'
+    required: false
+    default: 'true'
+  vm-dependencies:
+    description:
+      'Also install the packages needed for VM image builds (`qemu-utils`,
+      `btrfs-progs`, `dosfstools`).'
+    required: false
+    default: 'false'
+  cache:
+    description:
+      Cache the compiled distrobuilder binary and restore it on later runs.
+    required: false
+    default: 'true'
+  token:
+    description:
+      GitHub token used to query the distrobuilder releases API when resolving
+      `latest`.
+    required: false
+    default: ${{ github.token }}
 
 outputs:
-  time:
-    description: Your output description here
+  version:
+    description:
+      'The resolved distrobuilder version that was installed, e.g. `3.3.1`.'
+  path:
+    description:
+      'Absolute path to the installed binary: `/usr/local/bin/distrobuilder`.'
+  cache-hit:
+    description:
+      '`true` if the binary was restored from cache; `false` if it was built
+      from source, which includes every run where `cache` is `false`.'
 
 runs:
   using: node24
