@@ -43,7 +43,7 @@ jobs:
       # You run distrobuilder yourself — the action only installs it.
       # distrobuilder must run as root; the binary is on sudo's secure_path.
       - name: Build an image
-        run: sudo ${{ steps.setup.outputs.path }} build-lxc ubuntu.yaml
+        run: sudo distrobuilder build-lxc ubuntu.yaml
 ```
 
 ## Action interface
