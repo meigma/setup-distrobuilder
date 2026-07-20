@@ -37,3 +37,12 @@ trusted, toolchain installed). moon run root:check passes there; PR #6
 CI green.
 Next: PR #6 awaits review/merge; implementation follows docs/PLAN.md
 phases 1-7.
+
+## 2026-07-20 16:07 — Close
+User reviewed PR #6, asked about the example's path interpolation; fixed
+the example to plain `sudo distrobuilder ...` (binary is on secure_path),
+CI green, user approved ("LGTM"), squash-merged as 02c40df. main
+fast-forwarded; docs worktree removed. Handoff: v1 implementation not
+started — next session begins at docs/PLAN.md Phase 1. Outstanding user
+action: grant this repo access to the org-level Release Please app
+variable/secret. See SUMMARY.md.
