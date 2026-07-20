@@ -5,3 +5,9 @@ coverage/
 dist/
 mise.lock
 node_modules/
+
+# AI session protocol files — framework-owned, installed verbatim from ~/code/ai;
+# reformatting them would break re-install idempotency.
+.session.md
+AGENTS.md
+CLAUDE.md
