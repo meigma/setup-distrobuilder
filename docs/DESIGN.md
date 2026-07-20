@@ -97,8 +97,12 @@ expand a tilde.
 
 Build steps:
 
-1. `git clone --depth 1 --branch <tag> https://github.com/lxc/distrobuilder`
-   into `$RUNNER_TEMP/distrobuilder-src`.
+1. Remove any pre-existing `$RUNNER_TEMP/distrobuilder-src` (Node `fs.rm` with
+   `recursive` and `force`), then
+   `git clone --depth 1 --branch <tag> https://github.com/lxc/distrobuilder`
+   into it. Cache save failures are deliberately non-fatal, so a second source
+   build in the same job is legitimate and must not fail on a leftover clone
+   directory.
 2. Run `make` in that directory. The upstream Makefile sets the required build
    tags (`containers_image_openpgp`, etc.) and runs `go install`, producing the
    binary at the build output path. Using `make` (rather than a raw
@@ -112,7 +116,9 @@ The distrobuilder `version` is a user-facing input, not a CLI this action ships
 in lockstep with, so its default is a plain string. The
 `# x-release-please-version` marker described in the template is deliberately
 **not** applied to it — release-please tracks this action's own version, not
-distrobuilder's.
+distrobuilder's. That own version is pinned to start at `1.0.0` (release-please
+`initial-version` with an emptied manifest), so the `@v1` major tag used in the
+example above exists from the first published release onward.
 
 ## Caching design
 
@@ -128,7 +134,12 @@ When `cache` is `true`:
   distinguishes 22.04 from 24.04), `<RUNNER_ARCH>` is `RUNNER_ARCH` (e.g.
   `X64`), and `<version>` is the resolved version (e.g. `3.3.1`). The binary
   dynamically links glibc, so the OS image and architecture must be part of the
-  key; the version pins the exact build.
+  key; the version pins the exact build. `computeCacheKey` throws a descriptive
+  error when `ImageOS` or `RUNNER_ARCH` is unset — possible only outside
+  GitHub-hosted runners (a self-hosted Linux runner clears the platform guard
+  without setting `ImageOS`). The error is fatal through the normal try/catch →
+  `setFailed` path; such environments can still use the action with
+  `cache: false`.
 - **Restore behavior:** exact-key restore only — no `restore-keys` / partial
   matches, so a build for one version or OS can never be restored for another.
   On a hit the action skips the clone-and-build step, `sudo install`s the
@@ -195,6 +206,10 @@ convention. Specific cases:
   the reason.
 - Build failure (`git clone` or `make` exits non-zero): the `@actions/exec` call
   throws and is surfaced by `setFailed`.
+- Missing cache-key environment (`ImageOS` or `RUNNER_ARCH` unset):
+  `computeCacheKey` throws and is surfaced by `setFailed`. This only happens
+  outside GitHub-hosted runners; such environments can still use the action with
+  `cache: false`.
 - Dependency install failure (`apt-get` exits non-zero): surfaced by
   `setFailed`.
 - Cache restore/save failure: **non-fatal** — logged via `core.warning`; the run
