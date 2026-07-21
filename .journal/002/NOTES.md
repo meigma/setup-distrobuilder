@@ -191,3 +191,21 @@ gh-token workflow-scope limitation and release-app permissions
 promote to TECH_NOTES at close. All four Dependabot PRs now resolved
 (#1/#2/#3 merged, #4 closed + major ignored). Only PR #9 (release 1.0.0)
 remains open, deliberately left for the human release decision.
+
+## 2026-07-20 19:50 — Release PR CI fixed; v1.0.0 draft release created
+
+PR #9 CI failure diagnosed: root:format-check rejected
+.release-please-manifest.json — release-please rewrites it as compact JSON
+({".":"1.0.0"}) on every release PR; the bootstrap manifest just happened
+to be prettier-clean. Fix: add the manifest to .prettierignore alongside
+CHANGELOG.md (same machine-owned rationale). Verified locally against a
+simulated compact manifest before shipping. PR #11 → main 8dda5fe;
+release-please refreshed PR #9 → green.
+
+User merged... rather: user asked me to merge #9 and watch the release.
+Merged (squash 7963608 "chore(main): release 1.0.0 (#9)"). Release Please
+run succeeded: tag v1.0.0 created at 7963608, DRAFT release v1.0.0 with
+correct changelog (feat + 3 fixes). CI + Test Action green on the release
+commit. Remaining human step: publish the draft — that fires
+major-version-tag.yml (release:published) and moves/creates the v1 major
+tag, making uses: meigma/setup-distrobuilder@v1 resolvable.
