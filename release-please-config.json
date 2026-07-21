@@ -6,12 +6,10 @@
   "force-tag-creation": true,
   "draft": true,
   "always-update": true,
-  "initial-version": "0.1.0",
-  "bump-minor-pre-major": true,
-  "bump-patch-for-minor-pre-major": true,
+  "initial-version": "1.0.0",
   "packages": {
     ".": {
-      "package-name": "template-actions",
+      "package-name": "setup-distrobuilder",
       "changelog-path": "CHANGELOG.md",
       "exclude-paths": [".github"]
     }

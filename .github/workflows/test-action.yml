@@ -1,0 +1,88 @@
+name: Test Action
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up distrobuilder (first run)
+        id: first
+        uses: ./
+        with:
+          version: '3.3.1'
+
+      - name: Assert install
+        env:
+          # Pass outputs through env, never interpolated into the script body.
+          FIRST_PATH: ${{ steps.first.outputs.path }}
+          FIRST_VERSION: ${{ steps.first.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          echo "resolved version: ${FIRST_VERSION}"
+          echo "installed path:   ${FIRST_PATH}"
+
+          # The version output must be populated.
+          if [ -z "${FIRST_VERSION}" ]; then
+            echo "::error::version output is empty"
+            exit 1
+          fi
+
+          # The path output must be populated and point at an executable file.
+          if [ -z "${FIRST_PATH}" ]; then
+            echo "::error::path output is empty"
+            exit 1
+          fi
+          if [ ! -x "${FIRST_PATH}" ]; then
+            echo "::error::path output is not an executable file: ${FIRST_PATH}"
+            exit 1
+          fi
+
+          # distrobuilder --version must exit 0 and report the resolved version.
+          version_output="$(distrobuilder --version)"
+          echo "distrobuilder --version: ${version_output}"
+          case "${version_output}" in
+            *"${FIRST_VERSION}"*) ;;
+            *)
+              echo "::error::distrobuilder --version did not contain ${FIRST_VERSION}"
+              exit 1
+              ;;
+          esac
+
+      - name: Set up distrobuilder (second run)
+        id: second
+        uses: ./
+        with:
+          version: '3.3.1'
+
+      - name: Assert cache hit
+        env:
+          # The second invocation restores what the first built within this same
+          # workflow run, so it must report a cache hit. first.cache-hit is
+          # deliberately not asserted: a cache persisted from an earlier run can
+          # legitimately make the first invocation a hit too.
+          SECOND_CACHE_HIT: ${{ steps.second.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+
+          echo "second run cache-hit: ${SECOND_CACHE_HIT}"
+          if [ "${SECOND_CACHE_HIT}" != "true" ]; then
+            echo "::error::expected the second run to restore from cache (cache-hit=true)"
+            exit 1
+          fi

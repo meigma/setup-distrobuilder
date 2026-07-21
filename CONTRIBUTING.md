@@ -1,7 +1,8 @@
 # Contributing
 
-Thank you for your interest in contributing. This repository is the Meigma
-template for TypeScript GitHub Actions. For private vulnerability reporting, use
+Thank you for your interest in contributing. This repository contains
+setup-distrobuilder, a GitHub Action that installs distrobuilder on
+GitHub-hosted Linux runners. For private vulnerability reporting, use
 [SECURITY.md](SECURITY.md) instead of public channels.
 
 ## Reporting Bugs

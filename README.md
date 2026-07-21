@@ -1,107 +1,124 @@
-# template-actions
+# setup-distrobuilder
 
-Meigma template repository for GitHub Actions written in TypeScript.
+A GitHub Action that installs
+[distrobuilder](https://github.com/lxc/distrobuilder) on a GitHub-hosted Linux
+runner. It builds distrobuilder from source, caches the compiled binary so
+repeat runs are fast, and can optionally install the system packages
+distrobuilder needs at build time.
 
-The action skeleton comes from GitHub's canonical
-[actions/typescript-action](https://github.com/actions/typescript-action)
-template (see [UPSTREAM.md](UPSTREAM.md)), rebased onto the Meigma stack:
+The action does one job: get distrobuilder ready to use. After it finishes, the
+runner has a `distrobuilder` binary on `PATH` (and reachable under `sudo`) and,
+if requested, the build dependencies needed to build images. You invoke
+distrobuilder yourself in a later step — the action never runs it for you.
 
-- **[mise](https://mise.jdx.dev)** manages every tool (Node, moon) with a
-  committed, fail-closed `mise.lock`.
-- **[moon](https://moonrepo.dev)** is the task runner and CI gate; CI runs
-  `moon ci` against `system` binaries that mise puts on PATH.
-- **[release-please](https://github.com/googleapis/release-please)** drives
-  releases: Conventional Commits → release PR → draft release + protected
-  `vX.Y.Z` tag → human publishes → the `vN` major tag advances automatically.
-- Pinned-by-SHA workflows with `permissions: {}` defaults, weekly Dependabot,
-  dual MIT/Apache-2.0 license.
+## What it does
 
-## Local bootstrap
+- **Builds distrobuilder from source.** Upstream ships no prebuilt binaries, and
+  the snap package cannot pin an arbitrary release, so building from source is
+  the only way to install a chosen version. The toolchain it needs (`make`,
+  `git`, `gcc`, and Go) is already present on the supported runners.
+- **Installs the compiled binary** to `/usr/local/bin/distrobuilder`.
+- **Caches the compiled binary** and restores it on later runs (enabled by
+  default).
+- **Optionally installs the apt build dependencies** distrobuilder shells out to
+  at build time.
 
-```sh
-mise install
+## What it does not do
+
+- It never runs distrobuilder subcommands (`build-lxc`, `build-incus`,
+  `build-dir`, and so on). You run distrobuilder yourself.
+- It does not author or template image definition YAML files.
+- It does not configure Incus or LXC, create storage pools, or register images.
+- It does not support macOS or Windows runners.
+
+## Usage
+
+```yaml
+jobs:
+  build-image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up distrobuilder
+        id: setup
+        uses: meigma/setup-distrobuilder@v1
+        with:
+          version: '3.3.1'
+          vm-dependencies: 'true'
+
+      # You run distrobuilder yourself — the action only installs it.
+      # distrobuilder must run as root; the binary is on sudo's secure_path.
+      - name: Build an image
+        run: sudo distrobuilder build-lxc ubuntu.yaml
 ```
 
-`mise.lock` records per-platform URLs and checksums for every tool, and
-`settings.locked` makes installation fail closed when a platform lacks a
-pre-resolved entry. To bump a tool, edit its version in `mise.toml`, then:
+## Inputs
 
-```sh
-mise lock --platform linux-x64,linux-arm64,macos-x64,macos-arm64
-```
+| Name                   | Description                                                                                                        | Required | Default               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------ | -------- | --------------------- |
+| `version`              | distrobuilder release to install: `latest`, or an explicit version such as `3.3.1` (a leading `v` is accepted).    | No       | `latest`              |
+| `install-dependencies` | Install the apt packages distrobuilder needs to build container / rootfs images (`debootstrap`, `squashfs-tools`). | No       | `true`                |
+| `vm-dependencies`      | Also install the packages needed for VM image builds (`qemu-utils`, `btrfs-progs`, `dosfstools`).                  | No       | `false`               |
+| `cache`                | Cache the compiled distrobuilder binary and restore it on later runs.                                              | No       | `true`                |
+| `token`                | GitHub token used to query the distrobuilder releases API when resolving `latest`.                                 | No       | `${{ github.token }}` |
 
-and commit `mise.toml` + `mise.lock` together. (Note: moon's aqua package does
-not currently publish a `macos-x64` build, so Intel macOS is not covered by the
-lockfile.)
+## Outputs
 
-## Common tasks
+| Name        | Description                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`   | The resolved distrobuilder version that was installed, e.g. `3.3.1`.                                                                  |
+| `path`      | Absolute path to the installed binary: `/usr/local/bin/distrobuilder`.                                                                |
+| `cache-hit` | `true` if the binary was restored from cache; `false` if it was built from source, which includes every run where `cache` is `false`. |
 
-```sh
-moon run root:check       # the full CI gate: format-check, lint, test, check-dist, audit
-moon run root:format      # prettier --write
-moon run root:lint        # eslint
-moon run root:test        # jest
-moon run root:package     # rebuild dist/ (cacheable)
-moon run root:check-dist  # rebuild dist/ and fail if it differs from the committed copy
-moon ci --summary minimal # exactly what CI runs
-```
+## Running distrobuilder
 
-Without moon, the equivalent npm scripts still work: `npm run ci` mirrors
-`root:check`, and `npm run all` is the upstream
-format/lint/test/coverage/package sweep.
+The binary is installed at `/usr/local/bin/distrobuilder`, which is on sudo's
+`secure_path`, so a plain `sudo distrobuilder ...` command resolves it with no
+extra PATH setup. distrobuilder builds require root, so run it under `sudo`;
+invoking it without `sudo` fails distrobuilder's own root (EUID) check.
 
-`npm audit` runs inside `root:check`; if new upstream advisories break unrelated
-PRs too often, remove `root:audit` from `check.deps` in [moon.yml](moon.yml)
-(one line).
+## Caching
 
-## The sample action
+When `cache` is enabled (the default):
 
-The template ships upstream's wait sample: input `milliseconds`, output `time`.
-Code lives in `src/`, tests in `__tests__/` with mock fixtures in
-`__fixtures__/`.
+- The compiled binary at `/home/runner/go/bin/distrobuilder` is cached — the
+  runner-user-owned build output, not the root-owned copy under
+  `/usr/local/bin`.
+- The cache key is `distrobuilder-<ImageOS>-<RUNNER_ARCH>-<version>`: the runner
+  image (`ImageOS`, which distinguishes `ubuntu-22.04` from `ubuntu-24.04`), the
+  architecture (`RUNNER_ARCH`), and the resolved version. The binary dynamically
+  links glibc, so the image and architecture are part of the key.
+- Restore is exact-key only — there are no partial matches or `restore-keys`, so
+  a build for one version or image can never be restored for another. On a hit
+  the action skips the source build and installs the cached binary; on a miss it
+  builds from source and then saves the cache under the same key.
 
-The bundled action (`dist/index.js`) is **committed** — that is what
-`action.yml` executes. The contract: edit `src/`, run `moon run root:package`,
-commit `dist/` with your change. CI's `check-dist` task rebuilds the bundle and
-fails if the committed copy is stale.
+When `cache` is disabled, the action skips restore and save entirely, always
+builds from source, and reports `cache-hit: false`. Cache restore and save
+failures are non-fatal: the action logs a warning and falls back to building
+from source.
 
-## Releases
+## Limitations
 
-1. Merge Conventional Commits to `main`; release-please maintains a release PR.
-2. Merging the release PR bumps `package.json`/`CHANGELOG.md` and creates a
-   **draft** GitHub release plus the protected `vX.Y.Z` tag.
-3. A human inspects and publishes the draft.
-4. Publication triggers the Major Version Tag workflow, which force-moves the
-   `vN` compatibility tag so `uses: meigma/<repo>@v1` consumers pick up the
-   release.
+- GitHub-hosted Linux runners only: `ubuntu-22.04` and `ubuntu-24.04`.
+  distrobuilder requires a Linux host, root access, and Debian/Ubuntu apt
+  packages, and the hosted runners provide passwordless `sudo`. On a non-Linux
+  runner the action fails immediately.
+- Version pinning supports the modern `vMAJOR.MINOR[.PATCH]` tag scheme (3.3 and
+  later). Older releases used a different `distrobuilder-X.Y` tag naming and are
+  out of scope.
 
-Repo requirements (org-level): `vars.MEIGMA_RELEASE_APP_ID`,
-`secrets.MEIGMA_RELEASE_APP_PRIVATE_KEY`, and a protected `v*` tag ruleset with
-a bypass for the release app.
+## Development
 
-If your action pins a paired CLI version in `action.yml`, add
-`"extra-files": [{ "type": "generic", "path": "action.yml" }]` to
-[release-please-config.json](release-please-config.json) and a
-`# x-release-please-version` marker on the input default so releases keep it in
-sync.
+See [CONTRIBUTING.md](CONTRIBUTING.md). The CI gate is `moon run root:check`.
+The bundled action in `dist/` is committed, so rebuild it with
+`moon run root:package` after changing `src/` and commit the refreshed `dist/`
+in the same change.
 
-## After creating a repo from this template
+## Security
 
-1. `package.json`: `name`, `description`, `homepage`, `repository`, `bugs`.
-2. `action.yml`: `name`, `description`, `author`, `branding`, real
-   inputs/outputs; replace `src/` + `__tests__/` with your implementation.
-3. `release-please-config.json`: `package-name`.
-4. `moon.yml`: `project.title` / `project.description`.
-5. This README: rewrite for your action (usage example, inputs/outputs table).
-6. `SECURITY.md`: advisories URL.
-7. Pick a license posture (keep dual MIT/Apache-2.0 or trim).
-8. Repo settings: mark squash-only merges, protected `v*` tag ruleset with the
-   release-app bypass, Dependabot labels (`dependencies`, `github-actions`,
-   `javascript`).
-
-## Contributing and security
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+See [SECURITY.md](SECURITY.md) for the vulnerability reporting process.
 
 ## License
 

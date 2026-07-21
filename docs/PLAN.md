@@ -31,7 +31,12 @@ Tasks:
 - `mise.toml` — update the header comment on line 1 that names
   `template-actions` to reference `setup-distrobuilder`.
 - `release-please-config.json` — set `packages["."]["package-name"]` to
-  `setup-distrobuilder`.
+  `setup-distrobuilder`, set `initial-version` to `1.0.0`, and remove the
+  `bump-minor-pre-major` and `bump-patch-for-minor-pre-major` options (both
+  meaningless once versions start at `1.0.0`).
+- `.release-please-manifest.json` — reset its contents to `{}`; the template's
+  bootstrap `".": "0.1.0"` entry would otherwise be treated as the last released
+  version, making the first `feat` release `0.2.0` instead of `1.0.0`.
 - Run `npm install` to refresh `package-lock.json`.
 
 Success criteria:
@@ -76,10 +81,12 @@ Tasks:
   definition. This is a resolved absolute path, never a literal `~`, because
   neither `@actions/exec` (no shell) nor `@actions/cache` (globs paths) expands
   a tilde. The module exports two functions, both using `@actions/exec`:
-  - `buildBinary(tag: string): Promise<string>` — runs
+  - `buildBinary(tag: string): Promise<string>` — removes any pre-existing
+    `$RUNNER_TEMP/distrobuilder-src` (Node `fs.rm`, recursive + force) so a
+    second source build in the same job (legitimate when a non-fatal cache save
+    failed) does not trip on the leftover clone directory, then runs
     `git clone --depth 1 --branch <tag> https://github.com/lxc/distrobuilder`
-    into `$RUNNER_TEMP/distrobuilder-src`, then runs `make` there, and returns
-    the build output path.
+    into it, runs `make` there, and returns the build output path.
   - `placeBinary(sourcePath: string): Promise<string>` — runs
     `sudo install -m 0755 <sourcePath> /usr/local/bin/distrobuilder` and returns
     `/usr/local/bin/distrobuilder`. `run()` calls this on both the cache-miss
@@ -88,9 +95,10 @@ Tasks:
     place and the `path` output is always this function's return value.
 - Create `__fixtures__/exec.ts` mocking `@actions/exec` (`exec`,
   `getExecOutput`).
-- Create `__tests__/install.test.ts` asserting that `buildBinary` invokes the
-  git and make commands with the expected arguments and returns the build output
-  path, that `placeBinary` invokes the `sudo install` command and returns
+- Create `__tests__/install.test.ts` asserting that `buildBinary` removes any
+  pre-existing clone directory before cloning, invokes the git and make commands
+  with the expected arguments, and returns the build output path, that
+  `placeBinary` invokes the `sudo install` command and returns
   `/usr/local/bin/distrobuilder`, and that a non-zero exit from either
   propagates as a thrown error.
 
@@ -106,16 +114,19 @@ Tasks:
 
 - Create `src/cache.ts` exporting `computeCacheKey(version: string): string`
   returning `distrobuilder-<ImageOS>-<RUNNER_ARCH>-<version>` (reading the
-  `ImageOS` and `RUNNER_ARCH` environment variables), plus `restoreBinary(key)`
-  and `saveBinary(key)` wrapping `@actions/cache` `restoreCache` / `saveCache`
-  over the build output path **imported from `src/install.ts`** (the single
-  definition established in Phase 3), with exact-key matching (no
-  `restore-keys`). Restore/save errors are caught and surfaced as warnings, not
-  thrown.
+  `ImageOS` and `RUNNER_ARCH` environment variables), throwing a descriptive
+  error when either is unset (possible only outside GitHub-hosted runners; fatal
+  via `setFailed`, and such environments can still use `cache: false`), plus
+  `restoreBinary(key)` and `saveBinary(key)` wrapping `@actions/cache`
+  `restoreCache` / `saveCache` over the build output path **imported from
+  `src/install.ts`** (the single definition established in Phase 3), with
+  exact-key matching (no `restore-keys`). Restore/save errors are caught and
+  surfaced as warnings, not thrown.
 - Create `__fixtures__/cache.ts` mocking `@actions/cache`.
-- Create `__tests__/cache.test.ts` covering key composition from the env vars, a
-  restore hit vs. miss, and that a thrown cache error becomes a warning rather
-  than a failure.
+- Create `__tests__/cache.test.ts` covering key composition from the env vars,
+  the missing-env error (`computeCacheKey` throws when `ImageOS` or
+  `RUNNER_ARCH` is unset), a restore hit vs. miss, and that a thrown cache error
+  becomes a warning rather than a failure.
 
 Success criteria:
 
@@ -183,7 +194,7 @@ Success criteria:
 
 - `moon run root:check` passes end to end (format-check, lint, test, check-dist,
   audit).
-- `grep -r wait src __tests__ __fixtures__` returns nothing.
+- `grep -rw wait src __tests__ __fixtures__` returns nothing.
 - `git diff --exit-code -- dist` is clean after `moon run root:package`.
 
 ## Phase 7 — Docs, smoke test, and release readiness
@@ -211,8 +222,9 @@ Tasks:
   run (`steps.first.outputs.cache-hit` is not asserted, since a persisted cache
   from a previous run could legitimately make the first run a hit too).
 - Confirm `.release-please-manifest.json` and `release-please-config.json` are
-  ready (no `action.yml` entry in `extra-files`, since `version` is not this
-  action's own version).
+  ready: the manifest is `{}`, `initial-version` is `1.0.0`, and there is no
+  `action.yml` entry in `extra-files` (since `version` is not this action's own
+  version).
 
 Success criteria:
 
@@ -230,4 +242,8 @@ Success criteria:
 
 Completing all seven phases yields a v1 ready for the release-please flow: a
 Conventional Commit on `main` opens the release PR, and merging it produces the
-draft release and `vX.Y.Z` tag for a human to publish.
+draft release and `vX.Y.Z` tag for a human to publish. With the emptied manifest
+and an `initial-version` of `1.0.0`, that first release is `1.0.0`, tagged
+`v1.0.0`; publishing it moves the `v1` major compatibility tag
+(`major-version-tag.yml`), which is what makes DESIGN.md's
+`uses: meigma/setup-distrobuilder@v1` example valid.

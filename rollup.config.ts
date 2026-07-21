@@ -1,6 +1,7 @@
 // See: https://rollupjs.org/introduction/
 
 import commonjs from '@rollup/plugin-commonjs'
+import json from '@rollup/plugin-json'
 import nodeResolve from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript'
 
@@ -26,6 +27,10 @@ const config = {
   plugins: [
     typescript(),
     nodeResolve({ preferBuiltins: true }),
+    // json() runs before commonjs() so `.json` imports pulled in by CommonJS
+    // dependencies (for example @actions/cache reading its own package.json) are
+    // converted to modules instead of being handed to the commonjs parser.
+    json(),
     commonjs(),
     trimTrailingWhitespace
   ]

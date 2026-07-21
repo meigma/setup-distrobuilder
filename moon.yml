@@ -3,8 +3,8 @@ layer: 'application'
 stack: 'backend'
 
 project:
-  title: 'template-actions'
-  description: 'Meigma template for TypeScript GitHub Actions.'
+  title: 'setup-distrobuilder'
+  description: 'GitHub Action that installs distrobuilder on a Linux runner.'
   owner: 'meigma'
   maintainers:
     - 'meigma'

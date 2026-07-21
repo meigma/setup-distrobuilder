@@ -1,4 +1,4 @@
-# mise: tool + environment management for template-actions.
+# mise: tool + environment management for setup-distrobuilder.
 #
 # The committed mise.lock records per-platform download URLs + checksums; for
 # aqua-backed tools it additionally carries cosign / SLSA / GitHub-attestation
