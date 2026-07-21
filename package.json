@@ -1,7 +1,7 @@
 {
   "name": "setup-distrobuilder",
   "description": "GitHub Action that installs distrobuilder on a Linux runner",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Meigma",
   "type": "module",
   "private": true,
