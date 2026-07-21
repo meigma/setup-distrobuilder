@@ -1,35 +1,27 @@
 # setup-distrobuilder
 
 A GitHub Action that installs
-[distrobuilder](https://github.com/lxc/distrobuilder) on a GitHub-hosted Linux
-runner. It builds distrobuilder from source, caches the compiled binary so
-repeat runs are fast, and can optionally install the system packages
-distrobuilder needs at build time.
+[distrobuilder](https://github.com/lxc/distrobuilder) on GitHub-hosted Linux
+runners. It builds distrobuilder from source at a version you pin, caches the
+compiled binary so repeat runs are fast, and can optionally install the system
+packages distrobuilder needs to build images.
 
-The action does one job: get distrobuilder ready to use. After it finishes, the
-runner has a `distrobuilder` binary on `PATH` (and reachable under `sudo`) and,
-if requested, the build dependencies needed to build images. You invoke
-distrobuilder yourself in a later step — the action never runs it for you.
+The action installs distrobuilder; it never runs it. After the action finishes,
+the runner has a `distrobuilder` binary on `PATH` (and reachable under `sudo`),
+and you invoke distrobuilder yourself in a later step.
 
-## What it does
+## Contents
 
-- **Builds distrobuilder from source.** Upstream ships no prebuilt binaries, and
-  the snap package cannot pin an arbitrary release, so building from source is
-  the only way to install a chosen version. The toolchain it needs (`make`,
-  `git`, `gcc`, and Go) is already present on the supported runners.
-- **Installs the compiled binary** to `/usr/local/bin/distrobuilder`.
-- **Caches the compiled binary** and restores it on later runs (enabled by
-  default).
-- **Optionally installs the apt build dependencies** distrobuilder shells out to
-  at build time.
-
-## What it does not do
-
-- It never runs distrobuilder subcommands (`build-lxc`, `build-incus`,
-  `build-dir`, and so on). You run distrobuilder yourself.
-- It does not author or template image definition YAML files.
-- It does not configure Incus or LXC, create storage pools, or register images.
-- It does not support macOS or Windows runners.
+- [Usage](#usage)
+- [Features](#features)
+- [Inputs](#inputs)
+- [Outputs](#outputs)
+- [Running distrobuilder](#running-distrobuilder)
+- [Caching](#caching)
+- [Scope](#scope)
+- [Limitations](#limitations)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Usage
 
@@ -53,6 +45,22 @@ jobs:
         run: sudo distrobuilder build-lxc ubuntu.yaml
 ```
 
+Use `@v1` to track the current major release, or pin an exact release tag such
+as `@v1.0.0`.
+
+## Features
+
+- **Builds distrobuilder from source.** Upstream ships no prebuilt binaries, and
+  the snap package cannot pin an arbitrary release, so a source build is the
+  only way to install a chosen version. The required toolchain (`make`, `git`,
+  `gcc`, and Go) is already present on the supported runners.
+- **Installs the binary to `/usr/local/bin/distrobuilder`**, on both the normal
+  `PATH` and sudo's `secure_path`.
+- **Caches the compiled binary** and restores it on later runs (enabled by
+  default), absorbing the multi-minute source build.
+- **Optionally installs the apt build dependencies** distrobuilder shells out to
+  at image build time, for container and VM images.
+
 ## Inputs
 
 | Name                   | Description                                                                                                        | Required | Default               |
@@ -62,6 +70,9 @@ jobs:
 | `vm-dependencies`      | Also install the packages needed for VM image builds (`qemu-utils`, `btrfs-progs`, `dosfstools`).                  | No       | `false`               |
 | `cache`                | Cache the compiled distrobuilder binary and restore it on later runs.                                              | No       | `true`                |
 | `token`                | GitHub token used to query the distrobuilder releases API when resolving `latest`.                                 | No       | `${{ github.token }}` |
+
+`vm-dependencies` only takes effect when `install-dependencies` is `true`; VM
+image builds still need the container / rootfs tooling.
 
 ## Outputs
 
@@ -99,6 +110,15 @@ builds from source, and reports `cache-hit: false`. Cache restore and save
 failures are non-fatal: the action logs a warning and falls back to building
 from source.
 
+## Scope
+
+The action deliberately does not:
+
+- run distrobuilder subcommands (`build-lxc`, `build-incus`, `build-dir`, and so
+  on) — you run distrobuilder yourself;
+- author or template image definition YAML files;
+- configure Incus or LXC, create storage pools, or register images.
+
 ## Limitations
 
 - GitHub-hosted Linux runners only: `ubuntu-22.04` and `ubuntu-24.04`.
@@ -109,16 +129,14 @@ from source.
   later). Older releases used a different `distrobuilder-X.Y` tag naming and are
   out of scope.
 
-## Development
+## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The CI gate is `moon run root:check`.
-The bundled action in `dist/` is committed, so rebuild it with
-`moon run root:package` after changing `src/` and commit the refreshed `dist/`
-in the same change.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for bug reports, pull requests, and local
+setup. The CI gate is `moon run root:check`. The bundled action in `dist/` is
+committed: after changing `src/`, rebuild it with `moon run root:package` and
+commit the refreshed `dist/` in the same change.
 
-## Security
-
-See [SECURITY.md](SECURITY.md) for the vulnerability reporting process.
+For private vulnerability reporting, see [SECURITY.md](SECURITY.md).
 
 ## License
 
