@@ -72,3 +72,24 @@ Progress:
   — Phase 0: release config v1 fix + DESIGN/PLAN amendments (clone-dir rm -rf,
   ImageOS/RUNNER_ARCH guard, v1 pin). All gates green, 2 verifiers passed.
 - Phase 2 (version module) workflow launched.
+
+## 2026-07-20 17:45 — Phases 2–6 landed, Phase 7 running
+
+All phase workflows verified clean (implement + 2 adversarial verifiers each,
+no unresolved findings):
+- 18fb8ec feat: add version resolution module — 13 tests, 100% coverage;
+  latest via releases API (accept/user-agent/auth headers), explicit versions
+  validated offline.
+- 5d4d83c feat: add source build and install module — buildOutputPath single
+  source of truth, rm-before-clone hardening, placeBinary split. Minors noted:
+  os.tmpdir() fallback branch untested; no total-call-count asserts.
+- 519bf88 feat: add binary cache module — exact-key-only restore asserted
+  (two-arg call), ImageOS/RUNNER_ARCH guard throws, failures → core.warning.
+- 2a356e7 feat: add apt dependency installation module — 4 gating cases +
+  error propagation, 100% coverage.
+- 78d6f39 feat: wire distrobuilder setup orchestration and drop the template
+  sample — platform guard, hit/miss/disabled paths, 39 tests total. Rollup
+  needed @rollup/plugin-json (@actions/cache imports its own package.json);
+  dist ~3.0M committed, check-dist deterministic.
+Durable nugget: PLAN's `grep -r wait` criterion matches `await`; Phase 7
+amends it to `grep -rw`. Phase 7 (README/SECURITY/test-action.yml) running.
