@@ -93,3 +93,39 @@ no unresolved findings):
   dist ~3.0M committed, check-dist deterministic.
 Durable nugget: PLAN's `grep -r wait` criterion matches `await`; Phase 7
 amends it to `grep -rw`. Phase 7 (README/SECURITY/test-action.yml) running.
+
+## 2026-07-20 18:05 — v1 shipped: PR #7 merged, CI race fixed via PR #8
+
+Phase 7 landed (3c3e634: README/SECURITY rewrite, test-action.yml smoke,
+PLAN grep fix; tag v3.3.1 verified upstream before pinning).
+
+Final 4-lens review workflow (runtime/spec/security/release; opus+sonnet,
+3-refuter panel): ZERO confirmed blockers/majors. One refuted finding fixed
+anyway (CONTRIBUTING.md template sentence, 55a6c1e). One accepted minor:
+'3.3'-style input forms tag v3.3 which upstream doesn't tag — fails cleanly
+via setFailed; left as designed.
+
+PR #7 squash-merged → main 3ccd179 "feat: implement the setup-distrobuilder
+action". Smoke test verified on a real runner pre-merge: built 3.3.1 from
+source in ~64s (go1.25.6 toolchain fetched), --version printed 3.3.1, second
+invocation "Cache restored successfully" + cache-hit=true.
+
+Post-merge CI on main FAILED — new latent race, now fixed: rollup
+--configPlugin writes ephemeral rollup.config-<timestamp>.mjs to repo root
+during package/check-dist; moon runs lint/format-check in parallel, eslint's
+repo-wide glob opened it after deletion → ENOENT. Passed on the PR by timing
+luck; bundle growth (~13s window) made it likely. Fix: ignore
+rollup.config-*.mjs in eslint ignores + .prettierignore + .gitignore
+(PR #8 → main b14f1fd). Main now fully green (CI + Test Action).
+
+Release Please on main still fails: org-level MEIGMA_RELEASE_APP_ID /
+MEIGMA_RELEASE_APP_PRIVATE_KEY not visible to repo (needs org admin). Once
+fixed, next run opens the release PR for exactly 1.0.0 (manifest {} +
+initial-version) → tag v1.0.0 → v1 major tag on publish.
+
+Cleanup: feat/v1 and fix/rollup-config-race worktrees + local/remote branches
+removed; main checkout fast-forwarded to b14f1fd.
+
+Harness note for TECH_NOTES promotion at close: Workflow-tool args reach
+workflow scripts as a JSON STRING (parse defensively); moon lint/package
+parallelism races repo-root temp files (now structurally fixed).
