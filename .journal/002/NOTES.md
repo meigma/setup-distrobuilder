@@ -209,3 +209,17 @@ correct changelog (feat + 3 fixes). CI + Test Action green on the release
 commit. Remaining human step: publish the draft — that fires
 major-version-tag.yml (release:published) and moves/creates the v1 major
 tag, making uses: meigma/setup-distrobuilder@v1 resolvable.
+
+## 2026-07-20 20:15 — Post-release cleanup: docs/ removed, README rewritten
+
+User requested: remove docs/ and rewrite README via /readme-writer skill.
+PR #12 → main e04f0e9 "docs: remove planning docs and rewrite the README":
+- docs/DESIGN.md + docs/PLAN.md deleted (v1 fully executed; history keeps
+  them). Verified no tracked file references the folder.
+- README rewritten per readme-writer skill: usage-first structure, TOC,
+  @v1-vs-exact-tag versioning note, Features/Scope split, consolidated
+  Contributing (+SECURITY pointer), License unchanged. Facts preserved from
+  the implemented behavior (inputs/outputs/cache key/sudo semantics).
+Gate green; worktree + branches cleaned up. NOTE for close: TECH_NOTES
+still says "v1 scope defined by docs/DESIGN.md / docs/PLAN.md" — supersede
+with "v1 shipped; design docs removed in e04f0e9, see git history".
