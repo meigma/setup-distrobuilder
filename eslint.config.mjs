@@ -16,7 +16,16 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/coverage', '**/dist', '**/linter', '**/node_modules']
+    ignores: [
+      '**/coverage',
+      '**/dist',
+      '**/linter',
+      '**/node_modules',
+      // rollup --configPlugin compiles rollup.config.ts to an ephemeral
+      // rollup.config-<timestamp>.mjs in the repo root; linting it mid-build
+      // races its deletion (ENOENT).
+      'rollup.config-*.mjs'
+    ]
   },
   ...compat.extends(
     'eslint:recommended',

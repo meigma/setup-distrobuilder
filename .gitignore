@@ -23,6 +23,8 @@ mise.local.toml
 # is committed and CI's check-dist task enforces it stays current.
 node_modules/
 npm-debug.log*
+# Ephemeral compiled rollup config (rollup --configPlugin), deleted after builds
+rollup.config-*.mjs
 *.tsbuildinfo
 coverage/
 
