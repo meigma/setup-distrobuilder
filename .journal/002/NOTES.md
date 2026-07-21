@@ -223,3 +223,18 @@ PR #12 → main e04f0e9 "docs: remove planning docs and rewrite the README":
 Gate green; worktree + branches cleaned up. NOTE for close: TECH_NOTES
 still says "v1 scope defined by docs/DESIGN.md / docs/PLAN.md" — supersede
 with "v1 shipped; design docs removed in e04f0e9, see git history".
+
+## 2026-07-20 19:32 — Close
+
+Session closed. All work landed via squash-merged PRs: #7 (v1
+implementation), #8 (rollup-config lint race), #10 (moon ci dist race),
+#11 (manifest prettier exemption), #12 (docs removal + README rewrite),
+#9 (release 1.0.0); Dependabot #1/#2/#3 merged, #4 closed with 7.x major
+ignored. Main green at e04f0e9; local main fast-forwarded; all
+implementation worktrees removed; stale remote branches pruned (incl.
+session 001's docs/v1-design-plan and the release-please branch).
+
+Handoff: publish the draft v1.0.0 release to create the v1 major tag —
+everything else is done. SUMMARY.md written; INDEX.md row set to complete;
+TECH_NOTES.md rewritten (release credentials, workflow-scope constraint,
+TS7 ignore, v1 state).
