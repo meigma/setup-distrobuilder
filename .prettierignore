@@ -6,6 +6,10 @@ dist/
 mise.lock
 node_modules/
 
+# Machine-written by release-please (compact JSON); checking it fails every
+# release PR. CHANGELOG.md above is exempt for the same reason.
+.release-please-manifest.json
+
 # Ephemeral compiled rollup config (rollup --configPlugin); appears only
 # mid-build and racing its deletion breaks repo-wide globs.
 rollup.config-*.mjs
