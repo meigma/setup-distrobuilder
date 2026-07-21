@@ -129,3 +129,26 @@ removed; main checkout fast-forwarded to b14f1fd.
 Harness note for TECH_NOTES promotion at close: Workflow-tool args reach
 workflow scripts as a JSON STRING (parse defensively); moon lint/package
 parallelism races repo-root temp files (now structurally fixed).
+
+## 2026-07-20 18:20 — Release Please unblocked; release PR #9 opened for 1.0.0
+
+User provided the fix path: 1Password item `meigma-release-please` in the
+Meigma vault (fields app_id/client_id + key.pem attachment, RSA PEM). Set
+REPO-level `MEIGMA_RELEASE_APP_ID` variable (3342783) and
+`MEIGMA_RELEASE_APP_PRIVATE_KEY` secret via `op read | gh secret set`
+(key never on disk/logs; handled inline, not via workflow agents, on
+purpose). Repo-level vars/secrets satisfy the workflows' vars./secrets.
+contexts without the org-admin access-list change.
+
+Dispatched Release Please (workflow_dispatch): SUCCESS. Opened PR #9
+"chore(main): release 1.0.0" — manifest {} → {".":"1.0.0"}, package.json
+0.1.0 → 1.0.0, CHANGELOG has the feat + fix entries. Confirms the v1
+versioning fix end-to-end. PR #9 left unmerged: merging creates the draft
+v1.0.0 release + tag; publishing (which moves the v1 major tag) is the
+human step per the plan. Minor note: create-github-app-token warns app-id
+input is deprecated in favor of client-id — cosmetic, works on pinned
+v3.2.0; the 1Password item already carries client_id if the workflow is
+ever updated.
+
+Release Please blocker RESOLVED (previous TECH_NOTES entry about org-level
+access is superseded — promote this at close).
