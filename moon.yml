@@ -105,7 +105,10 @@ tasks:
     options:
       cache: false
 
-  # Local dist rebuild; the cacheable artifact task.
+  # Local dist rebuild; the cacheable artifact task. Kept OUT of CI: check-dist
+  # already rebuilds the bundle itself there, and running both concurrently
+  # races on dist/ (each starts with `rimraf ./dist`, crashing the other's
+  # in-flight rollup build). Nothing that runs in CI depends on this task.
   package:
     command: 'npm run package'
     deps:
@@ -116,6 +119,8 @@ tasks:
       - '@group(configs)'
     outputs:
       - 'dist'
+    options:
+      runInCI: false
 
   # Deliberately re-runs the bundle via npm (NOT via the cached package task)
   # so a cache restore can never mask nondeterminism, then
