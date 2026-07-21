@@ -194,7 +194,7 @@ Success criteria:
 
 - `moon run root:check` passes end to end (format-check, lint, test, check-dist,
   audit).
-- `grep -r wait src __tests__ __fixtures__` returns nothing.
+- `grep -rw wait src __tests__ __fixtures__` returns nothing.
 - `git diff --exit-code -- dist` is clean after `moon run root:package`.
 
 ## Phase 7 — Docs, smoke test, and release readiness
