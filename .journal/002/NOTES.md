@@ -180,3 +180,14 @@ b6ff461-ish; CI green. Worktree cleaned up.
 
 Release Please green on every main push since credentials fix; PR #9 stays
 "chore(main): release 1.0.0" (chore commits hidden from changelog).
+
+## 2026-07-20 19:30 — Correction: #2 merged by dependabot after all
+
+Dependabot DID honor "@dependabot squash and merge" on PR #2 — merged
+01:23Z, ~15 min after the re-comment. Lesson: dependabot merge commands in
+this org work but with long latency; rebase/ignore commands act fast. The
+gh-token workflow-scope limitation and release-app permissions
+(contents/issues/metadata/pull_requests only, NO workflows) remain true —
+promote to TECH_NOTES at close. All four Dependabot PRs now resolved
+(#1/#2/#3 merged, #4 closed + major ignored). Only PR #9 (release 1.0.0)
+remains open, deliberately left for the human release decision.
